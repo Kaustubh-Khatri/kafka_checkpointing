@@ -6,16 +6,6 @@ An intelligent Kafka topic compaction system that monitors workload patterns and
 
 This system demonstrates **adaptive, workload-driven compaction** for Kafka topics. Instead of running compaction continuously or on a fixed schedule, it intelligently monitors key access patterns and triggers compaction only when needed - specifically when "hot keys" (frequently updated keys) are detected.
 
-## Quick Start
-
-```bash
-# 1. Start Kafka (KRaft mode - no ZooKeeper needed)
-cd /path/to/kafka_2.13-4.1.0
-KAFKA_CLUSTER_ID="$(bin/kafka-storage.sh random-uuid)"
-bin/kafka-storage.sh format -t $KAFKA_CLUSTER_ID -c config/kraft/server.properties
-bin/kafka-server-start.sh config/kraft/server.properties
-```
-
 ## What This System Does
 
 - **Monitors** Kafka topic access patterns in real-time using Kafka Streams
@@ -259,13 +249,6 @@ Compaction complete.
 ## Architecture
 
 ```
-┌──────────────────────┐
-│ TestDataGenerator    │
-│ (Producer)           │
-└──────────┬───────────┘
-           │ Produces messages
-           │ (key-value pairs)
-           ▼
    ┌───────────────────┐
    │  workload topic   │  ← Source topic (all messages)
    │  Partitions: 3    │
@@ -329,9 +312,6 @@ Compaction complete.
 ```bash
 # Compile
 mvn clean compile
-
-# Run tests (requires Kafka running)
-mvn test
 
 # Package
 mvn clean package

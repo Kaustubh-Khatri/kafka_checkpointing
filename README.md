@@ -14,12 +14,6 @@ cd /path/to/kafka_2.13-4.1.0
 KAFKA_CLUSTER_ID="$(bin/kafka-storage.sh random-uuid)"
 bin/kafka-storage.sh format -t $KAFKA_CLUSTER_ID -c config/kraft/server.properties
 bin/kafka-server-start.sh config/kraft/server.properties
-
-# 2. In project directory, run cleanup (if needed)
-./cleanup.sh
-
-# 3. Run automated test
-./quick-test.sh
 ```
 
 ## What This System Does
@@ -79,28 +73,12 @@ Performs the actual compaction using a simple in-memory algorithm.
 - **Full scan**: Reads entire topic each time (not incremental)
 - **Separate output**: Preserves original topic by writing to new topic
 
-**Limitations:**
-- Memory-bound (all unique keys in HashMap)
-- No tombstone (null value) handling for deletes
-- No partition-aware processing
-- Simple stop condition (production should use end offsets)
-
-#### 4. TestDataGenerator.java - Workload Simulator
-Generates realistic test workloads with configurable patterns.
-
-**Scenarios:**
-- **hot**: High-frequency updates to single key (~30 msg/sec)
-- **normal**: Distributed load across multiple keys
-- **mixed**: Combination of hot and cold keys (60/40 split)
-- **burst**: Quiet period followed by sudden spike
-- **compact-test**: Multiple versions of same keys for testing
-
 **Producer Configuration:**
 - ACKS = "1" (wait for leader acknowledgment)
 - RETRIES = 3
 - LINGER_MS = 10 (small batching)
 
-#### 5. App.java - Entry Point Router
+#### 4. App.java - Entry Point Router
 Simple dispatcher that routes to different modes based on command-line arguments.
 
 **Usage:**
@@ -109,19 +87,6 @@ java App monitor    # Start Monitor
 java App compact    # Run Compactor once
 java App adaptive   # Start AdaptiveController
 ```
-
-### Utility Scripts
-
-- **cleanup.sh** - Kills stuck processes, removes state directories, cleans logs
-- **quick-test.sh** - Automated end-to-end test with result analysis
-- **test-scenarios.sh** - Interactive menu for different test scenarios
-- **debug-test.sh** - Detailed test with extensive logging and diagnostics
-
-### Documentation Files
-
-- **README-TESTING.md** - Comprehensive testing strategies and procedures
-- **manual-test-steps.md** - Step-by-step manual testing instructions
-- **TROUBLESHOOTING.md** - Common issues, diagnostics, and solutions
 
 ## How It Works
 
@@ -206,29 +171,6 @@ mvn exec:java -Dexec.mainClass="com.example.adaptive.Monitor"
 **Manual Compaction:**
 ```bash
 mvn exec:java -Dexec.mainClass="com.example.adaptive.Compactor"
-```
-
-**Test Data Generation:**
-```bash
-# Hot key scenario (~30 msg/sec to one key for 60 seconds)
-mvn exec:java -Dexec.mainClass="com.example.adaptive.TestDataGenerator" \
-  -Dexec.args="hot 60"
-
-# Normal workload (distributed across 5 keys)
-mvn exec:java -Dexec.mainClass="com.example.adaptive.TestDataGenerator" \
-  -Dexec.args="normal 60"
-
-# Mixed workload (60% hot keys, 40% normal)
-mvn exec:java -Dexec.mainClass="com.example.adaptive.TestDataGenerator" \
-  -Dexec.args="mixed 60"
-
-# Burst pattern (quiet then sudden spike)
-mvn exec:java -Dexec.mainClass="com.example.adaptive.TestDataGenerator" \
-  -Dexec.args="burst"
-
-# Compaction test (multiple versions of same keys)
-mvn exec:java -Dexec.mainClass="com.example.adaptive.TestDataGenerator" \
-  -Dexec.args="compact-test"
 ```
 
 ## Configuration
@@ -374,23 +316,6 @@ Compaction complete.
 - **Observable**: Detailed logging for debugging
 - **Flexible**: Configurable thresholds and windows
 
-### Limitations
-- **Memory-bound**: Compactor uses in-memory HashMap (all unique keys must fit in RAM)
-- **Full-scan**: Reads entire topic each time (not incremental)
-- **No delete support**: Doesn't handle tombstones (null values)
-- **Simplistic stop condition**: Uses empty poll instead of end offsets
-- **Single-threaded compaction**: No partition-level parallelism
-
-### Production Considerations
-
-For production use, consider:
-1. **Disk-backed compaction**: Use RocksDB or external storage
-2. **Incremental compaction**: Track offsets and compact only new data
-3. **Partition-aware processing**: Compact partitions independently
-4. **Tombstone handling**: Support deletes with null values
-5. **Atomic swap**: Replace source topic atomically instead of separate output
-6. **Metrics**: Expose compaction stats via JMX or Prometheus
-7. **Backpressure handling**: Rate-limit compaction if source is high-throughput
 
 ## System Requirements
 
@@ -412,10 +337,6 @@ mvn test
 mvn clean package
 ```
 
-## Troubleshooting
-
-For detailed troubleshooting, see `TROUBLESHOOTING.md`.
-
 **Common Issues:**
 
 1. **State directory locked**: Run `./cleanup.sh`
@@ -428,6 +349,4 @@ For detailed troubleshooting, see `TROUBLESHOOTING.md`.
 - **Log Compaction**: https://kafka.apache.org/documentation/#compaction
 - **KRaft Mode**: https://kafka.apache.org/documentation/#kraft
 
-## License
 
-This is a demonstration project for adaptive Kafka compaction.
